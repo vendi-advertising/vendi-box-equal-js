@@ -178,6 +178,7 @@
 
             //Always handle resize
             window.addEventListener('resize', onload);
+            window.addEventListener('VENDI_BOX_EQUAL_RELOAD', onload);
 
             if(document.readyState && ('complete' === document.readyState || 'loaded' === document.readyState)){
                 //If the document is already loaded then manually fire the load event
