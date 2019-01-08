@@ -6,7 +6,40 @@
 
     'use strict'; //Force strict mode
 
+    let
+        browserTransitionEvent
+    ;
+
     const
+
+        getBrowserTransitionEvent = () => {
+            if(browserTransitionEvent){
+                return browserTransitionEvent;
+            }
+
+            const
+                el = document.createElement("fakeelement"),
+                transitions = {
+                    "transition"      : "transitionend",
+                    "OTransition"     : "oTransitionEnd",
+                    "MozTransition"   : "transitionend",
+                    "WebkitTransition": "webkitTransitionEnd"
+                }
+            ;
+
+            let
+                t
+            ;
+
+            for (t in transitions){
+                if (el.style[t] !== undefined){
+                    browserTransitionEvent = transitions[t];
+                    return browserTransitionEvent;
+                }
+            }
+
+            throw 'Could not determine transition event';
+        },
 
         create_event = ( name, details ) => {
 
@@ -39,23 +72,43 @@
             obj.dispatchEvent( event );
         },
 
-        watch_dom = () => {
+        load = () => {
 
+            //Get the browser-specific transition event
             const
-                config = { attributes: true },
-                observer = new MutationObserver(
-                    (mutationsList, observer) => {
-                        mutationsList
-                            .forEach(
-                                (mutation) => {
-                                    if(mutation.type !== 'attributes') {
-                                        return;
-                                    }
+                tranEvent = getBrowserTransitionEvent()
+            ;
 
-                                    if(mutation.attributeName === 'aria-expanded') {
-                                        trigger_event('VENDI_BOX_EQUAL_RELOAD');
-                                    }
+            if(!tranEvent){
+                console.error('Could not determine browser transition event, not running box equal helper');
+                return;
+            }
 
+            document
+                //For each of the tabs
+                .querySelectorAll('[data-toggle~=tab]')
+                .forEach(
+                    (tab) => {
+
+                        //Get the target of the tab
+                        const
+                            href_raw = tab.getAttribute('href') || '',
+                            href_parts = href_raw.split('#'),
+                            id = href_parts.length === 2 ? href_parts[1] : null,
+                            target = document.getElementById(id)
+                        ;
+
+                        //Sanity check
+                        if(!target){
+                            console.log('Target for current tab could not be found... skipping');
+                        }
+
+                        //When the target is done transitioning, tell box equal to re-run itself
+                        target
+                            .addEventListener(
+                                tranEvent,
+                                () => {
+                                    trigger_event('VENDI_BOX_EQUAL_RELOAD');
                                 }
                             )
                         ;
@@ -63,19 +116,6 @@
                 )
             ;
 
-            document
-                .querySelectorAll('[data-toggle~=tab]')
-                .forEach(
-                    (tab) => {
-                        observer.observe(tab, config);
-                    }
-                )
-            ;
-
-        },
-
-        load = () => {
-            watch_dom();
         },
 
         init = () => {
